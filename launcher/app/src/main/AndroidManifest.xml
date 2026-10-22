@@ -123,6 +123,14 @@
             </intent-filter>
         </activity>
 
+        <!-- On-TV list of phone-uploaded screensaver pictures with per-file delete. -->
+        <activity
+            android:name=".UploadsManageActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.TvHome" />
+
         <!-- Screensaver: pick it in Settings, or `settings put secure screensaver_components
              com.gathin.tvhome/.ClockDream` over adb. -->
         <service

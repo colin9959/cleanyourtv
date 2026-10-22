@@ -88,6 +88,12 @@
             android:text="上传照片到屏保（扫码）" />
 
         <TextView
+            android:id="@+id/manageUploadsChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp"
+            android:text="管理上传的屏保图片（删除）" />
+
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"

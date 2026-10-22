@@ -105,6 +105,8 @@ public final class LauncherSettingsActivity extends Activity {
         });
         findViewById(R.id.uploadChoice).setOnClickListener(v ->
                 open(new Intent(this, UploadActivity.class)));
+        findViewById(R.id.manageUploadsChoice).setOnClickListener(v ->
+                open(new Intent(this, UploadsManageActivity.class)));
         followThemeChoice = findViewById(R.id.followThemeChoice);
         followThemeChoice.setOnClickListener(v -> {
             if (!hasOnTvChoices()) return;
