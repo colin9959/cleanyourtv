@@ -55,8 +55,6 @@ class TV:
     """
 
     def __init__(self, host, port=5555, binary=None):
-        self.host = host
-        self.port = port
         self.serial = f"{host}:{port}"
         self.binary = binary
         self.client = None
@@ -83,11 +81,8 @@ class TV:
     def _run(self, *args, capture=True):
         """Run tools/tv.py with the given arguments."""
         cmd = [self._python(), "-I", self._tv_py(), *args]
-        # tv.py reads its target from the environment, including CLI overrides here.
-        env = os.environ.copy()
-        env.update(TV_HOST=self.host, TV_PORT=str(self.port))
         result = subprocess.run(cmd, capture_output=capture, text=True,
-                                errors="replace" if capture else None, env=env)
+                                errors="replace" if capture else None)
         if result and result.returncode != 0 and not result.stdout.strip():
             raise SystemExit(f"tools/tv.py failed: {result.stderr.strip()}")
         return result
@@ -239,25 +234,18 @@ def frame_rows(framestats):
     """The PROFILEDATA rows as (flags, intended_vsync_ns, completed_ns)."""
     rows = []
     inside = False
-    columns = None
     for line in framestats.splitlines():
         if "---PROFILEDATA---" in line:
             inside = not inside
-            columns = None
             continue
-        if not inside:
+        if not inside or not re.match(r"^\d+,", line):
             continue
-        parts = [part.strip() for part in line.split(",")]
-        if columns is None:
-            # Android versions add fields; the header names stay the same.
-            try:
-                columns = [parts.index(name) for name in ("Flags", "IntendedVsync", "FrameCompleted")]
-            except ValueError:
-                pass
+        parts = line.split(",")
+        if len(parts) < 14:
             continue
         try:
-            rows.append(tuple(int(parts[index]) for index in columns))
-        except (ValueError, IndexError):
+            rows.append((int(parts[0]), int(parts[1]), int(parts[13])))
+        except ValueError:
             continue
     return rows
 
@@ -448,7 +436,7 @@ def idle_cpu(tv, package, seconds):
 
 def pss_of(tv, package):
     out = tv.shell(f"dumpsys meminfo {package}")
-    match = re.search(r"^\s*TOTAL(?: PSS)?:\s+(\d+)\b", out, re.M)
+    match = re.search(r"TOTAL:\s+(\d+)", out)
     return int(match.group(1)) // 1024 if match else None
 
 

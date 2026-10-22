@@ -7,21 +7,20 @@ import android.view.MotionEvent;
 import android.view.View;
 
 /**
- * The clock screensaver shown by Home itself after home_idle_clock_minutes without input. Some TVs' own
- * screens (CVTE's live TV) do not keep the screen on, so the system screensaver would cut into programmes;
- * this one only ever starts from Home. Any key returns to Home.
+ * The idle screensaver Home shows after home_idle_clock_minutes without input: a full-bleed rotating
+ * picture (Bing wallpapers + phone uploads) with a quiet clock. Any key returns to Home.
  */
 public class ClockActivity extends Activity {
 
-    private ClockScene scene;
+    private SaverScene scene;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.dream_clock);
+        setContentView(R.layout.dream_gallery);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE);
-        scene = new ClockScene(getWindow().getDecorView());
+        scene = new SaverScene(this, getWindow().getDecorView());
     }
 
     @Override
@@ -39,7 +38,7 @@ public class ClockActivity extends Activity {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        // The key that wakes the clock should not also act on Home, so it is consumed here.
+        // The key that wakes the screensaver should not also act on Home, so it is consumed here.
         if (event.getAction() == KeyEvent.ACTION_UP) finish();
         return true;
     }

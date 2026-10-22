@@ -34,14 +34,11 @@ public class FestivalTest {
     }
 
     @Test
-    public void customGreetingIsSanitizedAndOverridesTheFestivalDefault() {
-        assertEquals("Shubho Bijoya",
-                Festival.parse("dussehra", "", "  Shubho\u202E Bijoya ", "").greetingText(null));
-    }
-
-    @Test
-    public void unknownFestivalKeepsTheTimeOfDayGreeting() {
-        assertEquals("", Festival.parse("onam", "", "", "").greetingText(null));
+    public void greetingDefaultsByFestivalAndCanBeOverridden() {
+        assertEquals("Happy Dussehra", Festival.parse("dussehra", "", "", "").greetingText());
+        assertEquals("Happy Diwali", Festival.parse("DIWALI", "", "", "").greetingText());
+        assertEquals("", Festival.parse("onam", "", "", "").greetingText());
+        assertEquals("Shubho Bijoya", Festival.parse("dussehra", "", "  Shubho‮ Bijoya ", "").greetingText());
     }
 
     @Test

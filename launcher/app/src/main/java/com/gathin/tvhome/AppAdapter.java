@@ -5,6 +5,8 @@ import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
@@ -56,9 +58,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         void onLibraryRequested();
         void onLibraryFocused();
-        /** Hold OK on a tile: the activity shows the tile menu (move, remove from Home, app info). */
-        void onTileLongPress(int position, View card);
         void onLibraryUp();
+
+        /** Long-press on a tile; return true when the menu handled it. */
+        boolean onTileLongPressed(int position, Entry entry);
     }
 
     static final class Entry {
@@ -170,8 +173,6 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final boolean dockTitle;
     /** The owner's saved order (reorder button, Order): key -> rank. Empty when there is none or it no longer applies. */
     private Map<String, Integer> savedRanks = Collections.emptyMap();
-    /** Dock size recorded with the saved order (Order.docked), or -1: then dock_apps says which tiles are docked. */
-    private int savedDocked = -1;
     /** Reorder mode: no empty dock slots, so every position holds a tile that can move. */
     private boolean reordering;
     private final TileListener listener;
@@ -198,12 +199,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final boolean showHomeSettings;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): no overshoot, shorter fades. */
     private final boolean reducedMotion;
-    /** The focus zoom may overshoot (config.xml, focus_overshoot). */
-    private final boolean focusOvershoot;
     /** Package to the action its tile sends instead of the start screen (config.xml, launch_actions). */
     private final Map<String, String> launchActions;
-    /** Hold OK opens the activity's tile menu (config.xml, tile_menu); false opens App info, as before. */
-    private final boolean tileMenu;
     /** Tile names and bundled banners that replace the app's own (config.xml, app_labels and app_banners). */
     private final Map<String, String> appLabels, appBanners;
     private final List<Entry> items = new ArrayList<>();
@@ -220,14 +217,12 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
         this.showLibrary = cfg.appLibrary;
         this.reducedMotion = cfg.reducedMotion;
-        this.focusOvershoot = cfg.focusOvershoot;
         this.rowsBelowDock = cfg.rowsBelowDock;
         this.dockTitle = cfg.dockTitle;
         this.dockRow = cfg.dockRow;
         this.restNameAlpha = cfg.alwaysShowNames ? 0.75f : 0f;
         this.cinematic = cfg.cinematicHome;
         this.launchActions = cfg.launchActions;
-        this.tileMenu = cfg.tileMenu;
         this.appLabels = cfg.appLabels;
         this.appBanners = cfg.appBanners;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
@@ -278,15 +273,22 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             if (!seen.add(pkg + '\n' + label)) continue;
             Drawable banner = bundledBanner(appBanners.get(pkg));
             if (banner == null) banner = loadBanner(pm, ri);
-            // The icon is only drawn (and sampled for the glow) when there is no banner, so a tile with a
-            // banner skips loading and decoding it.
-            Drawable icon = banner == null ? ri.loadIcon(pm) : null;
+            // Apps with no shaped TV banner get a full-bleed 16:9 card built from the icon's dominant
+            // colour instead of a small centered icon on a plain card.
+            Drawable icon = null;
+            if (banner == null) {
+                icon = ri.loadIcon(pm);
+                banner = colorBanner(icon);
+            }
             if (card != null) {
                 fresh.add(new Entry(Entry.CARD, label, component, banner, icon, card.caption, card.accent));
             } else {
                 fresh.add(new Entry(label, component, banner, icon));
             }
         }
+        // System apps that declare no LAUNCHER/LEANBACK category (e.g. 米家 com.xiaomi.smarthome.tv)
+        // are invisible to the queries above; force their explicit entry point into the grid when present.
+        addForcedEntry(pm, fresh, "com.xiaomi.smarthome.tv", "com.xiaomi.smarthome.tv.ui.MainActivity");
         Collections.sort(fresh, (a, b) -> {
             // The owner's own order first; tiles it does not know (new installs) follow by the rule below.
             int saved = Order.compare(savedRanks, a.component.flattenToShortString(), b.component.flattenToShortString());
@@ -310,7 +312,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     ctx.getDrawable(R.drawable.ic_home_settings), null, 0));
         }
         docked = 0;
-        while (docked < fresh.size() && isDocked(fresh.get(docked))) docked++;
+        while (docked < fresh.size() && favourites.contains(fresh.get(docked).pkg)) docked++;
         emptySlots = dockRow && !reordering ? DockSlots.empty(docked, dockSize, fresh.size(), fillDock) : 0;
         for (int i = 0; i < emptySlots; i++) {
             fresh.add(docked + i, new Entry(Entry.EMPTY, "", new ComponentName(ctx, "empty-dock-slot-" + i),
@@ -326,6 +328,25 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (name == null || !name.startsWith("banner_")) return null;
         int id = ctx.getResources().getIdentifier(name, "drawable", ctx.getPackageName());
         return id != 0 ? ctx.getDrawable(id) : null;
+    }
+
+    /** Adds an explicit entry point that has no launcher category, when the package is installed and enabled. */
+    private void addForcedEntry(PackageManager pm, List<Entry> fresh, String pkg, String activity) {
+        for (Entry e : fresh) if (e.pkg.equals(pkg)) return;
+        ComponentName component = new ComponentName(pkg, activity);
+        try {
+            ActivityInfo ai = pm.getActivityInfo(component, 0);
+            if (ai == null || !ai.exported) return;
+            ApplicationInfo app = ai.applicationInfo;
+            int enabled = pm.getApplicationEnabledSetting(pkg);
+            if (enabled == PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                    || enabled == PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER) return;
+            String label = Cards.cleanLabel(String.valueOf(app.loadLabel(pm)), pkg);
+            Drawable icon = ai.loadIcon(pm);
+            Drawable banner = colorBanner(icon);
+            fresh.add(new Entry(label, component, banner, icon));
+        } catch (PackageManager.NameNotFoundException ignored) {
+        }
     }
 
     private Drawable loadBanner(PackageManager pm, ResolveInfo ri) {
@@ -352,6 +373,50 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
      */
     static boolean isBannerShaped(int width, int height) {
         return width <= 0 || height <= 0 || width >= height * 1.4f;
+    }
+
+    /** Builds a full-bleed 16:9 card from the app icon: a dominant-colour gradient with the icon centered. */
+    private Drawable colorBanner(Drawable icon) {
+        if (icon == null) return null;
+        final int W = 320, H = 180;
+        Bitmap src = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888);
+        Canvas sc = new Canvas(src);
+        icon.setBounds(0, 0, 256, 256);
+        icon.draw(sc);
+        Bitmap small = Bitmap.createScaledBitmap(src, 64, 64, true);
+        int[] px = new int[64 * 64];
+        small.getPixels(px, 0, 64, 0, 0, 64, 64);
+        long r = 0, g = 0, b = 0;
+        int n = 0;
+        for (int c : px) {
+            if (Color.alpha(c) > 40) {
+                r += Color.red(c);
+                g += Color.green(c);
+                b += Color.blue(c);
+                n++;
+            }
+        }
+        int base = n > 0 ? Color.rgb((int) (r / n), (int) (g / n), (int) (b / n)) : 0xFF2A2A2A;
+        Bitmap out = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(out);
+        android.graphics.Paint bg = new android.graphics.Paint();
+        bg.setShader(new android.graphics.LinearGradient(0, 0, 0, H,
+                shade(base, 1.28f), shade(base, 0.62f), android.graphics.Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, W, H, bg);
+        int iw = 108;
+        int left = (W - iw) / 2, top = (H - iw) / 2 - 4;
+        icon.setBounds(left, top, left + iw, top + iw);
+        icon.draw(c);
+        return new android.graphics.drawable.BitmapDrawable(ctx.getResources(), out);
+    }
+
+    private static int shade(int color, float k) {
+        return Color.rgb(clampCh(Color.red(color) * k), clampCh(Color.green(color) * k),
+                clampCh(Color.blue(color) * k));
+    }
+
+    private static int clampCh(float v) {
+        return v < 0 ? 0 : v > 255 ? 255 : Math.round(v);
     }
 
     /** Lets go of every tile and its artwork (Home is in the background and memory is short). */
@@ -397,7 +462,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             v.setPadding(v.getPaddingLeft(), pad, v.getPaddingRight(), pad);
         }
         name.setLayoutParams(nameLp);
-        return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha, focusOvershoot);
+        return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha);
     }
 
     @Override
@@ -447,11 +512,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
-            if (tileMenu) {
-                int pos = h.getBindingAdapterPosition();
-                if (pos != RecyclerView.NO_POSITION) listener.onTileLongPress(pos, v);
-                return true;
-            }
+            int pos = h.getBindingAdapterPosition();
+            if (listener != null && listener.onTileLongPressed(pos, e)) return true;
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
@@ -477,15 +539,14 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (leanbackPackages.contains(e.pkg)) i.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         String action = launchActions.get(e.pkg);
         if (action != null) {
-            // NEW_TASK only: with RESET_TASK_IF_NEEDED, Android just brings a running task of the app to the front
-            // ("Activity not started"), so the screen never opens while the app is up, e.g. MagentaTV's boot-time task.
-            Intent byAction = new Intent(action).setPackage(e.pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            Intent byAction = new Intent(action).setPackage(e.pkg)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
             if (ctx.getPackageManager().resolveActivity(byAction, 0) != null) i = byAction;
         }
         try {
             ctx.startActivity(i);
             if (cinematic) LastOpened.record(ctx, e.pkg);
-            if (advancedEffects && !reducedMotion && ctx instanceof Activity) {
+            if (advancedEffects && ctx instanceof Activity) {
                 ((Activity) ctx).overridePendingTransition(R.anim.app_open_enter, R.anim.app_open_exit);
             }
         } catch (Exception ex) {
@@ -514,20 +575,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return isLibraryAt(position) ? Long.MIN_VALUE : items.get(position).component.flattenToShortString().hashCode();
     }
 
-    /** Uses this saved order and dock size from the next reload() (Order.ranks, Order.docked). */
-    void setSavedOrder(Map<String, Integer> ranks, int docked) {
+    /** Uses this saved order from the next reload() (Order.ranks). */
+    void setSavedOrder(Map<String, Integer> ranks) {
         savedRanks = ranks;
-        savedDocked = docked;
-    }
-
-    /**
-     * A tile in the dock: one of the first savedDocked tiles of the saved order when one was recorded, so an app
-     * the owner moved into the dock stays there (#499); else a dock_apps entry.
-     */
-    private boolean isDocked(Entry e) {
-        if (savedDocked < 0) return favourites.contains(e.pkg);
-        Integer rank = savedRanks.get(e.component.flattenToShortString());
-        return rank != null && rank < savedDocked;
     }
 
     /** Reorder mode on or off; takes effect at the next reload() (empty dock slots are left out while on). */
@@ -681,10 +731,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         final boolean reducedMotion;
         /** Alpha of the name while the tile is not focused (always_show_names). */
         final float restNameAlpha;
-        final boolean overshoot;
 
         Holder(View v, TileListener listener, boolean animations, boolean advancedEffects,
-               boolean reducedMotion, float restNameAlpha, boolean overshoot) {
+               boolean reducedMotion, float restNameAlpha) {
             super(v);
             card = v.findViewById(R.id.card);
             cardBackground = card.getBackground();
@@ -696,7 +745,6 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             this.advancedEffects = advancedEffects;
             this.reducedMotion = reducedMotion;
             this.restNameAlpha = restNameAlpha;
-            this.overshoot = overshoot;
 
             final float density = v.getResources().getDisplayMetrics().density;
             card.setOutlineProvider(new ViewOutlineProvider() {
@@ -732,15 +780,13 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     name.setAlpha(focused ? 1f : restNameAlpha);
                     name.setTranslationY(0f);
                 } else if (reducedMotion) {
-                    // A short zoom with no hardware layer: building a layer for so short an animation costs more
-                    // frames than it saves. The name just appears instead of fading.
                     view.animate().scaleX(s).scaleY(s)
                             .translationY(focused && advancedEffects ? -4f * density : 0f)
                             .translationZ(focused && advancedEffects ? 8f * density : 0f)
-                            .setDuration(focused ? Motion.REDUCED_MS : 60)
+                            .setDuration(focused ? 120 : 80)
                             .setInterpolator(new DecelerateInterpolator())
-                            .start();
-                    name.setAlpha(focused ? 1f : restNameAlpha);
+                            .withLayer().start();
+                    name.animate().alpha(focused ? 1f : restNameAlpha).setDuration(100).start();
                     // Same place as the full motion's slide ends: the layout's -6dp is only its starting point, and
                     // left there the name overlaps the zoomed tile.
                     // Only on focus: snapping it back to -6dp while it fades out would jump it up over the tile.
@@ -750,8 +796,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                             .translationY(focused && advancedEffects ? -4f * density : 0f)
                             .translationZ(focused && advancedEffects ? 8f * density : 0f)
                             .setDuration(advancedEffects ? (focused ? 220 : 170) : (focused ? 260 : 180))
-                            .setInterpolator(focused && !overshoot ? new DecelerateInterpolator(1.5f)
-                                    : new OvershootInterpolator(focused ? (advancedEffects ? 0.7f : 1.6f) : 0f))
+                            .setInterpolator(new OvershootInterpolator(focused ? (advancedEffects ? 0.7f : 1.6f) : 0f))
                             .withLayer().start();
                     if (advancedEffects) {
                         banner.animate().scaleX(focused ? 1.035f : 1f).scaleY(focused ? 1.035f : 1f)
