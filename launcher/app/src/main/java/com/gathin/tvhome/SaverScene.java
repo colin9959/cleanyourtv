@@ -66,7 +66,13 @@ final class SaverScene {
         worker.shutdownNow();
     }
 
-    private final Runnable tick = this::showNext;
+    /** Show one picture, then schedule the next so the collection keeps cycling. */
+    private final Runnable tick = this::onTick;
+
+    private void onTick() {
+        showNext();
+        if (active) handler.postDelayed(tick, PERIOD_MS);
+    }
 
     private void showNext() {
         if (!active || files.isEmpty()) return;
