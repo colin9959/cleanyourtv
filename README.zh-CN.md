@@ -55,6 +55,43 @@
 - **主题**：通过配置文件调整颜色、壁纸、快捷栏和列数，无需重新编译。
 - **模块卡片**：其他应用可以提供桌面卡片，需用户同意才会显示。
 
+### 本仓库额外定制（在原版基础上新增，小米电视实测）
+
+下列功能是在上游 CleanYourTV 之上叠加的定制，默认应用包名 `com.ts.launcher`，配置保存在电视 `/sdcard/Android/data/com.ts.launcher/files/config.json`。
+
+| 定制功能 | 说明 |
+|---|---|
+| 必应壁纸轮播 | 开机自动更新当天必应壁纸；桌面按 `wallpaper_rotation_minutes`（实测 1 分钟）随机轮播（`wallpaper_order: shuffle`），`wallpaper_dim` 控制暗化程度，保证图标和文字可读。 |
+| 空闲全屏屏保 | 无操作达到 `home_idle_clock_minutes`（实测 5 分钟）后进入必应壁纸全屏屏保；设置页提供「屏保 开/关」开关，关闭后不触发。 |
+| 手机扫码传图 | 设置页「上传照片扫码」生成本机局域网二维码/地址，手机扫码后通过浏览器上传相册图片，替换屏保图片；图片存于应用 `uploads/` 目录。 |
+| 主色满幅卡片 | 没有横幅图的应用自动提取图标主色，填充为与 VidHub、爆米花一致的满幅卡片；新安装应用自动套用，无需逐个调整。 |
+| 长按图标菜单 | **长按桌面任意应用图标**弹出「调整顺序」「移除图标」：调整顺序进入重排模式（确定选中、方向键移动、返回放下）；移除图标仅把该应用从桌面移除，不卸载，应用仍留在应用库可随时加回。 |
+| 无启动类别应用入口 | 对没有 LAUNCHER/LEANBACK 类别的应用（如米家 `com.xiaomi.smarthome.tv`）使用显式组件加入桌面；系统相册 `com.mitv.gallery` 恢复启用并可添加到首页。 |
+
+当前实测 `config.json`：
+
+```json
+{"app_library":true,"library_button":true,"wallpaper":true,
+ "wallpaper_rotation_minutes":1,"wallpaper_order":"shuffle",
+ "wallpaper_dim":8,"home_idle_clock_minutes":5}
+```
+
+按需停用示例（可逆，使用 `pm disable-user`，不卸载）：
+
+```bash
+# 停用并隐藏「时尚画报」com.xiaomi.tv.gallery
+adb shell pm disable-user --user 0 com.xiaomi.tv.gallery
+# 恢复：adb shell pm enable com.xiaomi.tv.gallery
+```
+
+编译本定制版（JDK 17、Android SDK 34）：
+
+```bash
+cd launcher
+./gradlew assembleRelease -PlauncherApplicationId=com.ts.launcher
+# 产物 app/build/outputs/apk/release/app-release.apk，再 adb install -r 覆盖安装
+```
+
 ![应用聚焦效果](docs/focus-2-up-netflix.png)
 
 ### 在电视上调整设置
@@ -68,12 +105,16 @@
 | 高级动态效果 | 增加卡片上浮、图标缩放和背景颜色平滑过渡。可能增加内存占用，实际影响取决于电视。 |
 | 跟随主题（重置电视端设置） | 清除电视端的布局与动效选择，恢复当前主题或内置配置。推送或重置主题也会清除这些选择。 |
 | 默认桌面入口 | 打开 Android 的默认桌面选择页，切换到原始桌面或 CleanYourTV。 |
+| 屏保开关 | 开启或关闭空闲 5 分钟后的必应壁纸全屏屏保（本仓库定制项）。 |
+| 上传照片扫码 | 生成局域网二维码/地址，手机扫码上传相册图片替换屏保图（本仓库定制项）。 |
 
 默认桌面入口不负责重新启用已停用的原始桌面。如果原始桌面已被安装脚本停用，需要先按下文恢复。部分电视不提供系统桌面选择页。还可以通过 `show_home_settings_shortcut` 配置单独显示该入口。
 
 ### 排序与应用库
 
 在桌面「设置」按钮上长按确定，通过菜单进入排序模式。按确定选中要移动的应用，用方向键调整位置，再按确定或返回放下；没有拿起应用时，按返回退出排序并保存。顶部独立排序按钮默认隐藏，可通过配置或主题的 `reorder_button` 开启。
+
+本仓库定制版也可以直接**长按首页应用图标**，在弹出菜单中选择「调整顺序」进入同一重排模式，或选择「移除图标」把该应用从首页移除（不卸载，仍可在应用库加回）。
 
 应用库默认关闭，在配置或主题中启用 `app_library` 后，入口显示在首页应用的最后一行之后。它可以列出具有电视或普通 Android 启动入口的应用；普通 Android 应用可能仍需触摸或鼠标操作。
 
