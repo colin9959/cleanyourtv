@@ -39,8 +39,6 @@ jobs:
         with:
           packages: platforms;android-34 build-tools;34.0.0
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 8.9
       - name: Unit tests, lint and release build
         working-directory: launcher
         run: |
