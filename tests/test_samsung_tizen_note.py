@@ -1,4 +1,4 @@
-"""A Samsung Tizen set is documented as out of reach for this repo's tools, not as a supported TV.
+﻿"""A Samsung Tizen set is documented as out of reach for this repo's tools, not as a supported TV.
 
 #441 offered one owner's reconnaissance of an AU8000, and the answer to "can this repo clean my
 Samsung?" is no: there is no ADB on retail firmware, so there is no `pm disable-user`, no shell, no
@@ -16,7 +16,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / "docs" / "devices" / "samsung-tizen.md"
-README = ROOT / "README.md"
+README = ROOT / "README.en.md"
 
 
 def page():
@@ -78,3 +78,4 @@ class PageLinksTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -1,4 +1,4 @@
-"""Where the #577 field report went: the Fire OS limits bullet and the TVision Hub note.
+﻿"""Where the #577 field report went: the Fire OS limits bullet and the TVision Hub note.
 
 The report covers six devices in one session, and most of it was already documented (the onn 4K Pro
 setupwraith handover, Fire OS 6's protected packages). Two things were not: that some firmware
@@ -15,7 +15,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 NOTE = ROOT / "docs" / "devices" / "tvision-hub.md"
 TROUBLE = ROOT / "docs" / "TROUBLESHOOTING.md"
-README = ROOT / "README.md"
+README = ROOT / "README.en.md"
 EXAMPLES_README = ROOT / "examples" / "README.md"
 PROMPT = ROOT / "PROMPT.md"
 FIRE_STICK = ROOT / "examples" / "amazon-fire-tv-stick-4k-2018" / "debloat.txt"
@@ -176,3 +176,4 @@ class PointersTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -103,4 +103,7 @@
     <string name="race_live">%1$s · בשידור חי</string>
     <string name="race_finished">הדגל המשובץ</string>
     <string name="last_opened">נפתח לאחרונה %1$s</string>
+    <string name="tile_remove">הסר סמל</string>
+    <string name="tile_removed">הוסר ממסך הבית</string>
+    <string name="tile_reorder">סדר מחדש</string>
 </resources>

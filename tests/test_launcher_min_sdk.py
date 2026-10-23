@@ -1,4 +1,4 @@
-"""The install script asks the TV's SDK level before it builds, and the docs answer #576.
+﻿"""The install script asks the TV's SDK level before it builds, and the docs answer #576.
 
 A set older than the launcher's minSdk used to cost a gradle build, a push and a `pm install` that
 answered INSTALL_FAILED_OLDER_SDK - a Failure line that reads like an ADB problem. The scripts now
@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 STOCK_HOME = "com.google.android.tvlauncher/.MainActivity"
 NEW_HOME = "com.gathin.tvhome/.MainActivity"
 TROUBLE = ROOT / "docs" / "TROUBLESHOOTING.md"
-README = ROOT / "README.md"
+README = ROOT / "README.en.md"
 EXAMPLES = ROOT / "examples" / "README.md"
 PROMPT = ROOT / "PROMPT.md"
 
@@ -235,3 +235,4 @@ class Android7DocsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

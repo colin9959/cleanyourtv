@@ -1,4 +1,4 @@
-"""The setupwraith notes must carry the second box that reproduces them (#500).
+﻿"""The setupwraith notes must carry the second box that reproduces them (#500).
 
 docs/TROUBLESHOOTING.md already documented the casting break and the `.RecoveryActivity` crash loop
 from a Chromecast with Google TV HD and a Xiaomi MiTV-MZTU0. A Google TV Streamer (`kirkwood`,
@@ -17,7 +17,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC = (ROOT / "docs" / "TROUBLESHOOTING.md").read_text(encoding="utf-8")
-README = (ROOT / "README.md").read_text(encoding="utf-8")
+README = (ROOT / "README.en.md").read_text(encoding="utf-8")
 PROMPT = (ROOT / "PROMPT.md").read_text(encoding="utf-8")
 KIRKWOOD = "UTTK.260317.003"
 
@@ -114,3 +114,4 @@ class KirkwoodNoteTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
