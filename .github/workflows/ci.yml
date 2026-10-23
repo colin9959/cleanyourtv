@@ -39,11 +39,14 @@ jobs:
         with:
           packages: platforms;android-34 build-tools;34.0.0
       - uses: gradle/actions/setup-gradle@v4
+      - name: Network diagnostic
+        run: |
+          echo "== curl services.gradle.org =="
+          curl -sS -o /dev/null -w "http_code=%{http_code}\n" --max-time 20 https://services.gradle.org/distributions/gradle-8.9-bin.zip || echo "curl failed"
+          echo "== curl repo.maven.apache.org =="
+          curl -sS -o /dev/null -w "http_code=%{http_code}\n" --max-time 20 https://repo.maven.apache.org/maven2/ || echo "curl failed"
       - name: Unit tests, lint and release build
         working-directory: launcher
-        env:
-          JAVA_OPTS: -Djava.net.preferIPv4Stack=true
-          GRADLE_OPTS: -Djava.net.preferIPv4Stack=true
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon testReleaseUnitTest lintRelease assembleRelease
