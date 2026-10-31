@@ -49,6 +49,7 @@ jobs:
       - name: Create debug keystore when not cached
         run: |
           if [ ! -f ~/.android/debug.keystore ]; then
+            mkdir -p ~/.android
             keytool -genkeypair -v -keystore ~/.android/debug.keystore -alias androiddebugkey \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass android -keypass android \
