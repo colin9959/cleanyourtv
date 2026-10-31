@@ -15,6 +15,18 @@ android {
         versionName '2.5'
     }
 
+    signingConfigs {
+        debug {
+            // Committed keystore so every CI run signs with the same certificate and
+            // `adb install -r` can upgrade the TV build instead of failing with
+            // INSTALL_FAILED_UPDATE_INCOMPATIBLE.
+            storeFile rootProject.file('launcher/debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+
     buildTypes {
         release {
             // R8 strips and optimises the code (AndroidX included): smaller APK, faster start on a slow TV CPU.
