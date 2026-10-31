@@ -151,6 +151,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean pillsShown;
     private TextView shamsiDate;
     private TextView stats;
+    private TextView weather;
+    /** config.xml weather_city_code / weather_city, for the one-line weather under the date. */
+    private String weatherCityCode, weatherCity;
+    /** Last time the weather line was refreshed, so the minute tick refreshes it twice an hour. */
+    private long lastWeatherMs;
     private List<RaceWeekend.Race> raceCalendar;
     private View racePanel;
     private TextView raceKicker, raceHeadline, raceSessions;
@@ -292,6 +297,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateGreeting();
             updateRace();
             updateWifiLabel();
+            updateWeatherIfDue();
             sky.update();
             wallpaperPlayer.update();
             handler.postDelayed(this, MINUTE_MS);
@@ -361,6 +367,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
         stats = findViewById(R.id.stats);
+        weather = findViewById(R.id.weather);
+        weatherCityCode = cfg.weatherCityCode;
+        weatherCity = cfg.weatherCity;
         raceCalendar = cfg.raceCalendar;
         racePanel = findViewById(R.id.racePanel);
         raceKicker = findViewById(R.id.raceKicker);
@@ -662,6 +671,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rebuildOnResume = false;
         updateGreeting();
         updateRace();
+        updateWeatherIfDue();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
         // when the network or the inputs change, so this refresh only catches anything missed. Its binder calls
         // (about 7 ms on a TCL C755, most of it WifiManager.getConnectionInfo) would hold up the first frame back
@@ -2048,6 +2058,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         raceSessions.setText(row);
         racePanel.setVisibility(View.VISIBLE);
+    }
+
+    // ---- weather line --------------------------------------------------------------------------
+
+    /** The weather line refreshes twice an hour; a failure also waits for the same interval. */
+    private static final long WEATHER_REFRESH_MS = 30L * MINUTE_MS;
+
+    /** Called from onResume and the minute tick; refetches only when the half-hour is up. */
+    private void updateWeatherIfDue() {
+        if (weather == null || System.currentTimeMillis() - lastWeatherMs < WEATHER_REFRESH_MS) return;
+        lastWeatherMs = System.currentTimeMillis();
+        final double lat = getLatitude(), lon = getLongitude();
+        final String code = weatherCityCode, city = weatherCity;
+        new Thread(() -> {
+            String line = Weather.fetch(code, lat, lon);
+            if (line != null && !line.isEmpty() && !city.isEmpty()) line = city + " · " + line;
+            final String text = line == null ? "" : line;
+            handler.post(() -> {
+                if (isDestroyed() || weather == null) return;
+                if (text.isEmpty()) {
+                    weather.setVisibility(View.GONE);
+                } else {
+                    weather.setText(text);
+                    weather.setVisibility(View.VISIBLE);
+                }
+            });
+        }, "weather").start();
+    }
+
+    /** config.xml latitude/longitude, read fresh each refresh so a theme change applies without restart. */
+    private double getLatitude() {
+        try { return Double.parseDouble(getString(R.string.latitude).trim()); } catch (Exception e) { return 0; }
+    }
+
+    private double getLongitude() {
+        try { return Double.parseDouble(getString(R.string.longitude).trim()); } catch (Exception e) { return 0; }
     }
 
     private void refreshPillsAfterNextDraw() {

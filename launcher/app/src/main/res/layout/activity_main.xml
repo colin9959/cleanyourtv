@@ -270,6 +270,24 @@
                             android:fontFamily="@font/outfit_regular"
                             android:letterSpacing="0.14"
                             android:textAllCaps="true" />
+
+                        <!-- Current weather, one line under the date ("合肥 · 多云 18~28℃"). Fetched in the
+                             background and refreshed twice an hour; gone until the first line arrives, and
+                             hidden again when the feed fails, so the header never shows stale text. -->
+                        <TextView
+                            android:id="@+id/weather"
+                            android:gravity="left"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:singleLine="true"
+                            android:ellipsize="end"
+                            android:textColor="#99FFFFFF"
+                            android:textSize="13sp"
+                            android:fontFamily="@font/outfit_regular"
+                            android:letterSpacing="0.06"
+                            android:includeFontPadding="false"
+                            android:visibility="gone" />
                     </LinearLayout>
                 </LinearLayout>
 

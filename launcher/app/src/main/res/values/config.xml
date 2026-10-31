@@ -181,6 +181,14 @@
     <string name="latitude" translatable="false"></string>
     <string name="longitude" translatable="false"></string>
 
+    <!-- Current weather under the date, one line ("HEFEI · PARTLY CLOUDY 18~28°C"). The city is fetched
+         from the China Meteorological Administration feed by weather_city_code (a 9-digit city id; the
+         default 101220101 is Hefei). If that feed fails, the launcher falls back to Open-Meteo using
+         latitude/longitude above. An empty city code disables the CMA feed and uses Open-Meteo only;
+         set "weather_city_code": "" and "weather_city": "" in a theme's config.json to hide the line. -->
+    <string name="weather_city_code" translatable="false">101220101</string>
+    <string name="weather_city" translatable="false">合肥</string>
+
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position
          dots, the focus glow takes the app's colour and the dock band turns translucent. false keeps the plain

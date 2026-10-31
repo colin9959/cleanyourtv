@@ -42,6 +42,7 @@
         android:banner="@drawable/banner"
         android:theme="@style/Theme.TvHome"
         android:allowBackup="false"
+        android:usesCleartextTraffic="true"
         android:localeConfig="@xml/locales_config">
 
         <activity
