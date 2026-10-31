@@ -29,10 +29,12 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         this.dockSize = dockSize;
         this.density = density;
         this.namesRoom = names ? 22 * density : 0;
-        band.setColor(translucent ? 0x8C121014 : 0xFF141416);
+        // Frosted glass: the opaque near-black band is now a translucent slab, so the wallpaper and
+        // the ambient glow show through it; the rim brightens into the crisp glass edge.
+        band.setColor(translucent ? 0x8C121014 : 0x66121014);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
-        edge.setColor(translucent ? 0x26FFFFFF : 0x1FFFFFFF);
+        edge.setColor(translucent ? 0x26FFFFFF : 0x59FFFFFF);
     }
 
     @Override

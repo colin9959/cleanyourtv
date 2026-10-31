@@ -353,8 +353,8 @@
                     android:maxWidth="180dp"
                     android:singleLine="true"
                     android:ellipsize="end"
-                    android:text="@string/wifi"
-                    android:drawableStart="@drawable/ic_wifi"
+                    android:text="@string/apps"
+                    android:drawableStart="@drawable/ic_apps"
                     android:nextFocusDown="@+id/grid" />
 
                 <TextView
