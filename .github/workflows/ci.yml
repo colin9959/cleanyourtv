@@ -52,3 +52,10 @@ jobs:
           size=$(stat -c %s launcher/app/build/outputs/apk/release/app-release.apk)
           echo "release APK: $((size / 1024)) KB"
           test "$size" -lt 524288 || { echo "APK is over 512 KB; keep the launcher small"; exit 1; }
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: cleanyourtv-apk
+          path: launcher/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
