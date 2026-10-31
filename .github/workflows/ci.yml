@@ -38,6 +38,22 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: platforms;android-34 build-tools;34.0.0
+      # The release build signs with the debug key so it installs over a previous sideload. A fresh
+      # runner has no debug.keystore and AGP would mint a random one every run, which breaks
+      # install-over-install; cache a stable one across runs instead.
+      - name: Stable debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+      - name: Create debug keystore when not cached
+        run: |
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -v -keystore ~/.android/debug.keystore -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
       - name: Install Gradle 8.9 via curl
         run: |
           curl -sSL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.9-bin.zip
