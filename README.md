@@ -50,19 +50,22 @@
 - **遥控器排序**：从设置按钮的长按菜单进入排序模式，调整应用位置。
 - **可选应用库**：浏览已安装且可启动的应用，用遥控器添加或移除首页快捷方式。
 - **动效控制**：可开关动态效果，也可单独启用高级动态效果。
-- **常用入口**：Wi-Fi / 以太网和系统设置；设备有可识别的 HDMI、AV、直播电视或已配置来源面板时，还会显示输入源入口。HDMI 名称沿用电视系统中的命名。
+- **常用入口**：右上角「应用」、输入源和系统设置；本仓库定制版中「应用」按钮点击打开全部应用列表，**长按**进入 WiFi / 以太网设置。设备有可识别的 HDMI、AV、直播电视或已配置来源面板时，还会显示输入源入口。HDMI 名称沿用电视系统中的命名。
 - **时钟与屏保**：问候语、时间、日期，以及配套的时钟屏保。
 - **主题**：通过配置文件调整颜色、壁纸、快捷栏和列数，无需重新编译。
 - **模块卡片**：其他应用可以提供桌面卡片，需用户同意才会显示。
 
 ### 本仓库额外定制（在原版基础上新增，小米电视实测）
 
-下列功能是在上游 CleanYourTV 之上叠加的定制，默认应用包名 `com.ts.launcher`，配置保存在电视 `/sdcard/Android/data/com.ts.launcher/files/config.json`。
+下列功能是在上游 CleanYourTV 之上叠加的定制，默认应用包名 `com.gathin.tvhome`，配置保存在电视 `/sdcard/Android/data/com.gathin.tvhome/files/config.json`。
 
 | 定制功能 | 说明 |
 |---|---|
+| 本地天气显示 | 首页左上角时间下方显示当前城市天气（城市、天气、温度区间），默认合肥；优先走中国天气网，失败自动兜底 Open-Meteo，约 30 分钟刷新一次。 |
 | 必应壁纸轮播 | 开机自动更新当天必应壁纸；桌面按 `wallpaper_rotation_minutes`（实测 1 分钟）随机轮播（`wallpaper_order: shuffle`），`wallpaper_dim` 控制暗化程度，保证图标和文字可读。 |
 | 空闲全屏屏保 | 无操作达到 `home_idle_clock_minutes`（实测 5 分钟）后进入必应壁纸全屏屏保；设置页提供「屏保 开/关」开关，关闭后不触发。 |
+| 右上角「应用」入口 | 原 WiFi 按钮替换为「应用」入口，点击直接打开全部应用列表；**长按**仍可进入 WiFi 设置。 |
+| 程序坞透明玻璃背景 | 快捷栏第一行背景由纯黑改为半透明深色玻璃效果（40% 不透明度 + 亮色细描边），壁纸可透出。 |
 | 手机扫码传图 | 设置页「上传照片扫码」生成本机局域网二维码/地址，手机扫码后通过浏览器上传相册图片，替换屏保图片；图片存于应用 `uploads/` 目录。 |
 | 屏保图片管理 | 设置页「管理上传的屏保图片（删除）」用遥控器上下键选择（蓝色高亮 + ▶ 光标 + 序号），按确定弹出确认框，默认聚焦「取消」，确认后仅删除本地 `uploads/` 图片，不卸载应用。 |
 | 主色满幅卡片 | 没有横幅图的应用自动提取图标主色，填充为与 VidHub、爆米花一致的满幅卡片；新安装应用自动套用，无需逐个调整。 |
@@ -73,8 +76,8 @@
 
 ```json
 {"app_library":true,"library_button":true,"wallpaper":true,
- "wallpaper_rotation_minutes":1,"wallpaper_order":"shuffle",
- "wallpaper_dim":8,"home_idle_clock_minutes":5}
+ "wallpaper_rotation_minutes":5,"wallpaper_order":"shuffle",
+ "wallpaper_dim":0,"home_idle_clock_minutes":5}
 ```
 
 按需停用示例（可逆，使用 `pm disable-user`，不卸载）：
@@ -89,9 +92,11 @@ adb shell pm disable-user --user 0 com.xiaomi.tv.gallery
 
 ```bash
 cd launcher
-./gradlew assembleRelease -PlauncherApplicationId=com.ts.launcher
+./gradlew assembleRelease -PlauncherApplicationId=com.gathin.tvhome
 # 产物 app/build/outputs/apk/release/app-release.apk，再 adb install -r 覆盖安装
 ```
+
+仓库已提交固定的 `launcher/debug.keystore`，release 构建始终使用同一签名，跨版本可无损覆盖安装，不会出现签名不匹配。
 
 ![应用聚焦效果](docs/focus-2-up-netflix.png)
 
