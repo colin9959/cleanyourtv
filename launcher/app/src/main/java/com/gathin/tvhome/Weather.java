@@ -72,7 +72,7 @@ final class Weather {
     /** weather.com.cn city feed: {"weatherinfo":{"city":"合肥","temp1":"18℃","temp2":"28℃","weather":"多云"}}. */
     private static String cma(String code) {
         try {
-            JSONObject info = getJson("http://www.weather.com.cn/data/cityinfo/" + code + ".html")
+            JSONObject info = getJson("https://www.weather.com.cn/data/cityinfo/" + code + ".html")
                     .optJSONObject("weatherinfo");
             if (info == null) return null;
             String cond = info.optString("weather", "").trim();
@@ -88,7 +88,10 @@ final class Weather {
 
     /** Open-Meteo forecast for one day: current temperature and the day's min/max. */
     private static String openMeteo(double latitude, double longitude) {
-        if (latitude == 0 && longitude == 0) return null;
+        if (latitude == 0 && longitude == 0) {
+            Log.w(TAG, "Open-Meteo skipped: no coordinates configured");
+            return null;
+        }
         try {
             URL url = new URL("https://api.open-meteo.com/v1/forecast?latitude=" + latitude
                     + "&longitude=" + longitude
@@ -106,6 +109,7 @@ final class Weather {
             String minS = min.length > 0 ? Math.round(min[0]) + "°C" : "";
             String text = line("", cond, minS, maxS);
             if (text.isEmpty()) text = now;
+            Log.i(TAG, "Open-Meteo ok: " + text);
             return text;
         } catch (Exception e) {
             Log.w(TAG, "Open-Meteo failed: " + e.getMessage());
