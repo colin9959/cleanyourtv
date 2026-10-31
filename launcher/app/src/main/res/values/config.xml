@@ -176,16 +176,17 @@
          "sky_intensity": 60 in a theme's config.json. -->
     <integer name="sky_intensity">0</integer>
     <!-- Where the TV is, in decimal degrees, so the sky's sunrise and sunset glows follow the real sun
-         (computed on the TV, no network). Empty: a fixed temperate day, sunset glow around 19:00.
-         Vilnius: 54.69 and 25.28. -->
-    <string name="latitude" translatable="false"></string>
-    <string name="longitude" translatable="false"></string>
+         (computed on the TV, no network). Also the coordinates the weather line falls back to when the
+         CMA city feed fails. Empty: a fixed temperate day, sunset glow around 19:00, and Open-Meteo is
+         not tried. Hefei: 31.82 and 117.23. -->
+    <string name="latitude" translatable="false">31.82</string>
+    <string name="longitude" translatable="false">117.23</string>
 
-    <!-- Current weather under the date, one line ("HEFEI · PARTLY CLOUDY 18~28°C"). The city is fetched
-         from the China Meteorological Administration feed by weather_city_code (a 9-digit city id; the
-         default 101220101 is Hefei). If that feed fails, the launcher falls back to Open-Meteo using
-         latitude/longitude above. An empty city code disables the CMA feed and uses Open-Meteo only;
-         set "weather_city_code": "" and "weather_city": "" in a theme's config.json to hide the line. -->
+    <!-- Current weather under the date, one line ("合肥 · 多云 18~28℃"). The city is fetched from the
+         China Meteorological Administration feed by weather_city_code (a 9-digit city id; the default
+         101220101 is Hefei) and falls back to Open-Meteo at latitude/longitude above when that feed
+         fails. Set "weather_city_code": "", "weather_city": "" and empty latitude/longitude in a
+         theme's config.json to hide the line. -->
     <string name="weather_city_code" translatable="false">101220101</string>
     <string name="weather_city" translatable="false">合肥</string>
 
